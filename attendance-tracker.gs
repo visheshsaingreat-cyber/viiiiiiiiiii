@@ -35,6 +35,24 @@ const CONFIG = {
 };
 
 // ============================================================================
+// WEB APP ENTRY POINT
+// ============================================================================
+
+/**
+ * doGet - Main entry point for web app deployment
+ * Deploy as web app to get a URL
+ */
+function doGet(e) {
+  try {
+    return HtmlService.createHtmlOutput(getAttendanceHTML())
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  } catch (error) {
+    return HtmlService.createHtmlOutput('Error: ' + error.message);
+  }
+}
+
+// ============================================================================
 // INITIALIZATION & SETUP
 // ============================================================================
 
@@ -367,7 +385,7 @@ function getAttendanceHTML() {
           color: white;
         }
         
-        .btn-checkin:hover {
+        .btn-checkin:hover:not(:disabled) {
           transform: translateY(-2px);
           box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
         }
@@ -377,7 +395,7 @@ function getAttendanceHTML() {
           color: white;
         }
         
-        .btn-checkout:hover {
+        .btn-checkout:hover:not(:disabled) {
           transform: translateY(-2px);
           box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
         }
@@ -451,6 +469,7 @@ function getAttendanceHTML() {
           text-align: center;
           font-size: 12px;
           font-weight: 600;
+          white-space: pre-wrap;
         }
         
         .badge-checkin {
@@ -582,14 +601,14 @@ function getAttendanceHTML() {
           if (data.checkIn) {
             const badge = document.createElement('div');
             badge.className = 'status-badge badge-checkin';
-            badge.textContent = '✓ Checked In\\n' + data.checkInTime;
+            badge.textContent = '✓ Checked In\n' + data.checkInTime;
             statusDisplay.appendChild(badge);
           }
           
           if (data.checkOut) {
             const badge = document.createElement('div');
             badge.className = 'status-badge badge-checkout';
-            badge.textContent = '✓ Checked Out\\n' + data.checkOutTime;
+            badge.textContent = '✓ Checked Out\n' + data.checkOutTime;
             statusDisplay.appendChild(badge);
           }
           
@@ -646,8 +665,9 @@ function getAttendanceHTML() {
         }
         
         function handleCheckInResult(result) {
-          event.target.disabled = false;
-          event.target.innerHTML = '✓ CHECK IN';
+          const btn = document.querySelector('.btn-checkin');
+          btn.disabled = false;
+          btn.innerHTML = '✓ CHECK IN';
           
           if (result.success) {
             showAlert('✓ ' + result.message, 'success');
@@ -658,8 +678,9 @@ function getAttendanceHTML() {
         }
         
         function handleCheckOutResult(result) {
-          event.target.disabled = false;
-          event.target.innerHTML = '✓ CHECK OUT';
+          const btn = document.querySelector('.btn-checkout');
+          btn.disabled = false;
+          btn.innerHTML = '✓ CHECK OUT';
           
           if (result.success) {
             showAlert('✓ ' + result.message, 'success');
@@ -671,10 +692,14 @@ function getAttendanceHTML() {
         
         function handleError(error) {
           showAlert('Error: ' + error, 'error');
-          if (event.target && event.target.tagName === 'BUTTON') {
-            event.target.disabled = false;
-            event.target.innerHTML = event.target.classList.contains('btn-checkin') ? '✓ CHECK IN' : '✓ CHECK OUT';
-          }
+          document.querySelectorAll('button').forEach(btn => {
+            btn.disabled = false;
+            if (btn.classList.contains('btn-checkin')) {
+              btn.innerHTML = '✓ CHECK IN';
+            } else if (btn.classList.contains('btn-checkout')) {
+              btn.innerHTML = '✓ CHECK OUT';
+            }
+          });
         }
         
         function showAlert(message, type) {
